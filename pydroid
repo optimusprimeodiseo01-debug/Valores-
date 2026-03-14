@@ -1,0 +1,73 @@
+# generador_ascii_laberinto.py
+
+import random
+
+ANCHO = 60
+ALTO = 25
+
+# simbolos posibles
+muros = ["#", "|", "-"]
+caminos = [" ", ".", ":"]
+numeros = [str(i) for i in range(10)]
+
+def generar_matriz():
+    matriz = []
+
+    for y in range(ALTO):
+        fila = []
+        for x in range(ANCHO):
+
+            r = random.random()
+
+            if r < 0.15:
+                fila.append(random.choice(muros))
+
+            elif r < 0.85:
+                fila.append(random.choice(caminos))
+
+            else:
+                fila.append(random.choice(numeros))
+
+        matriz.append(fila)
+
+    return matriz
+
+
+def tallar_caminos(matriz):
+
+    x = ANCHO // 2
+    y = ALTO // 2
+
+    for _ in range(500):
+
+        matriz[y][x] = " "
+
+        direccion = random.choice([
+            (1,0),(-1,0),(0,1),(0,-1)
+        ])
+
+        nx = x + direccion[0]
+        ny = y + direccion[1]
+
+        if 1 < nx < ANCHO-2 and 1 < ny < ALTO-2:
+            x = nx
+            y = ny
+
+    return matriz
+
+
+def guardar_ascii(matriz, archivo):
+
+    with open(archivo,"w") as f:
+
+        for fila in matriz:
+            linea = "".join(fila)
+            f.write(linea + "\n")
+
+
+def mostrar(matriz):
+
+    for fila in matriz:
+        print("".join(fila))
+
+
