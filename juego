@@ -1,0 +1,127 @@
+# mapa_ascii_interactivo.py
+
+import random
+import os
+
+ANCHO = 60
+ALTO = 25
+
+muros = ["#", "|", "-"]
+caminos = [" ", ".", ":"]
+numeros = [str(i) for i in range(10)]
+
+def generar_matriz():
+
+    matriz = []
+
+    for y in range(ALTO):
+        fila = []
+
+        for x in range(ANCHO):
+
+            r = random.random()
+
+            if r < 0.15:
+                fila.append(random.choice(muros))
+
+            elif r < 0.85:
+                fila.append(random.choice(caminos))
+
+            else:
+                fila.append(random.choice(numeros))
+
+        matriz.append(fila)
+
+    return matriz
+
+
+def tallar_caminos(matriz):
+
+    x = ANCHO // 2
+    y = ALTO // 2
+
+    for _ in range(600):
+
+        matriz[y][x] = " "
+
+        dx,dy = random.choice([
+            (1,0),(-1,0),(0,1),(0,-1)
+        ])
+
+        nx = x + dx
+        ny = y + dy
+
+        if 1 < nx < ANCHO-2 and 1 < ny < ALTO-2:
+            x = nx
+            y = ny
+
+    return matriz
+
+
+def dibujar(matriz, cx, cy):
+
+    os.system("clear")
+
+    for y in range(ALTO):
+
+        linea = ""
+
+        for x in range(ANCHO):
+
+            if x == cx and y == cy:
+                linea += "@"
+            else:
+                linea += matriz[y][x]
+
+        print(linea)
+
+    print()
+    print("Cursor:",cx,cy)
+    print("WASD mover | N nuevo mapa | G guardar | Q salir")
+
+
+def guardar(matriz):
+
+    with open("mapa_ascii.txt","w") as f:
+
+        for fila in matriz:
+            f.write("".join(fila)+"\n")
+
+    print("Mapa guardado en mapa_ascii.txt")
+
+
+# inicio
+
+matriz = generar_matriz()
+matriz = tallar_caminos(matriz)
+
+cx = ANCHO//2
+cy = ALTO//2
+
+while True:
+
+    dibujar(matriz,cx,cy)
+
+    cmd = input("comando: ").lower()
+
+    if cmd == "w" and cy > 0:
+        cy -= 1
+
+    elif cmd == "s" and cy < ALTO-1:
+        cy += 1
+
+    elif cmd == "a" and cx > 0:
+        cx -= 1
+
+    elif cmd == "d" and cx < ANCHO-1:
+        cx += 1
+
+    elif cmd == "n":
+        matriz = generar_matriz()
+        matriz = tallar_caminos(matriz)
+
+    elif cmd == "g":
+        guardar(matriz)
+
+    elif cmd == "q":
+        break
