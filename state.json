@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "id": "run_001",
+    "timestamp": "2026-03-25T00:00:00Z",
+    "version": "tapiz_v1",
+    "origen": "push_main"
+  },
+
+  "radar": {
+    "cambios_detectados": true,
+    "archivos": [
+      "tapiz_engine/core.py",
+      "web/engine.js"
+    ],
+    "tipo_evento": "modificacion",
+    "intensidad": 0.72
+  },
+
+  "cerebro_z": {
+    "estado_procesado": true,
+    "componentes": {
+      "estructura": 0.81,
+      "coherencia": 0.77,
+      "complejidad": 0.69
+    },
+    "vector_estado": [
+      0.81,
+      0.77,
+      0.69
+    ]
+  },
+
+  "validacion": {
+    "aprobado": true,
+    "checks": {
+      "integridad": true,
+      "consistencia": true,
+      "estabilidad": true
+    },
+    "score_validacion": 0.84
+  },
+
+  "decision": {
+    "accion": "hold",
+    "confianza": 0.78,
+    "motivo": "estado estable sin mejora significativa"
+  },
+
+  "ejecucion": {
+    "ejecutado": true,
+    "resultado": "sin cambios aplicados",
+    "impacto": 0.0
+  },
+
+  "seguridad": {
+    "riesgo": 0.12,
+    "alertas": [],
+    "integridad_flujo": true
+  },
+
+  "persistencia": {
+    "guardado": true,
+    "tipo": "artifact",
+    "ruta": "state/run_001.json"
+  }
+}
