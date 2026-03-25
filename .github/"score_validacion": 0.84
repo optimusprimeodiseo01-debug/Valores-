@@ -1,0 +1,27 @@
+RADAR
+  ↓
+detecta cambios -> intensidad
+
+CEREBRO Z
+  ↓
+normaliza -> vector_estado
+
+VALIDACION
+  ↓
+filtra -> score_validacion
+
+DECISION
+  ↓
+define accion
+
+EJECUCION
+  ↓
+aplica o no
+
+SEGURIDAD
+  ↓
+verifica integridad
+
+PERSISTENCIA
+  ↓
+guarda estado
