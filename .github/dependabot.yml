@@ -1,0 +1,87 @@
+import requests
+
+GITHUB_TOKEN = "Eigen_tapiz"
+REPO = "optimusprimeodiseo01-debug/Valores-"
+
+headers = {
+    "Authorization": f"Bearer {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github+json"
+}
+
+# pesos iniciales
+weights = {
+    "impact": 0.4,
+    "scope": 0.3,
+    "frequency": 0.1,
+    "depth": 0.05,
+    "fixable": 0.1,
+    "exploit": 0.05
+}
+
+TAU = 0.3
+EPS = 0.4
+ALPHA = 0.05
+
+
+def get_dependabot_alerts():
+    url = f"https://api.github.com/repos/{REPO}/dependabot/alerts"
+    return requests.get(url, headers=headers).json()
+
+
+def score(dep):
+    if dep["malware"]:
+        return 0
+
+    if dep["scope"] == 0 and dep["impact"] < TAU:
+        return 0
+
+    s = 0
+    for k in weights:
+        s += weights[k] * dep[k]
+
+    return s
+
+
+def update_weights(dep, real):
+    pred = score(dep)
+    error = real - pred
+
+    for k in weights:
+        weights[k] += ALPHA * error * dep[k]
+
+
+def process():
+    alerts = get_dependabot_alerts()
+
+    decisions = []
+
+    for a in alerts:
+        dep = {
+            "impact": map_severity(a["security_advisory"]["severity"]),
+            "scope": 1,
+            "frequency": 0.5,
+            "depth": 1,
+            "fixable": 1 if a["security_advisory"]["patched_versions"] else 0,
+            "exploit": 0,
+            "malware": 0
+        }
+
+        s = score(dep)
+
+        keep = s >= EPS
+        decisions.append((a["dependency"]["package"]["name"], s, keep))
+
+    return decisions
+
+
+def map_severity(sev):
+    return {
+        "critical": 1.0,
+        "high": 0.8,
+        "medium": 0.5,
+        "low": 0.2
+    }.get(sev, 0.1)
+
+
+if __name__ == "__main__":
+    print(process())
