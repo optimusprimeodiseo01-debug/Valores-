@@ -1,10 +1,28 @@
-- name: Init CodeQL
-  uses: github/codeql-action/init@v3
-  with:
-    languages: python, javascript
+name: CodeQL
 
-- name: Autobuild
-  uses: github/codeql-action/autobuild@v3
+on:
+  push:
+    branches: [ main ]
 
-- name: Analyze
-  uses: github/codeql-action/analyze@v3
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python, javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
