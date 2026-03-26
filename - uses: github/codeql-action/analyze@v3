@@ -1,0 +1,10 @@
+- name: Init CodeQL
+  uses: github/codeql-action/init@v3
+  with:
+    languages: python, javascript
+
+- name: Autobuild
+  uses: github/codeql-action/autobuild@v3
+
+- name: Analyze
+  uses: github/codeql-action/analyze@v3
