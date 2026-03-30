@@ -1,122 +1,125 @@
 import socket
 import json
-from web3 import Web3
 import time
-
-HOST = "127.0.0.1"
-PORT = 5000
-
-KEY_FILE = "infra/key.txt"
-
-MAX_GAS = 300000
-MAX_VALUE_ETH = 0.05
-RATE_LIMIT_SECONDS = 2
+from web3 import Web3
 
 RPC_URL = "https://mainnet.infura.io/v3/TU_API_KEY"
+CONTRACT_ADDRESS = "0xTU_CONTRATO"
 
-# =========================
-# INIT
-# =========================
-
-with open(KEY_FILE) as f:
-    PRIVATE_KEY = f.read().strip()
+SIGNER_HOST = "127.0.0.1"
+SIGNER_PORT = 5000
 
 w3 = Web3(Web3.HTTPProvider(RPC_URL))
-account = w3.eth.account.from_key(PRIVATE_KEY)
 
-last_signature_time = 0
+ABI = [
+    {
+        "inputs":[{"name":"i","type":"uint256"},
+                  {"name":"j","type":"uint256"},
+                  {"name":"valor","type":"int256"}],
+        "name":"escribirRelacion",
+        "outputs":[],
+        "stateMutability":"nonpayable",
+        "type":"function"
+    },
+    {
+        "inputs":[{"name":"nota","type":"string"},
+                  {"name":"intensidad","type":"int256"}],
+        "name":"registrarEstado",
+        "outputs":[],
+        "stateMutability":"nonpayable",
+        "type":"function"
+    }
+]
+
+contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=ABI)
 
 # =========================
-# HELPERS
+# SIGNER CLIENT
 # =========================
+
+def call_signer(payload):
+
+    s = socket.socket()
+    s.connect((SIGNER_HOST, SIGNER_PORT))
+    s.send(json.dumps(payload).encode())
+    res = s.recv(8192).decode()
+    s.close()
+
+    if res.startswith("ERROR"):
+        raise Exception(res)
+
+    return res
 
 def get_address():
-    return account.address
+    return call_signer({"cmd": "get_address"})
 
 def get_nonce():
-    return w3.eth.get_transaction_count(account.address)
+    return int(call_signer({"cmd": "get_nonce"}))
 
-def validar_tx(tx):
-
-    if "to" not in tx:
-        raise Exception("tx sin destino")
-
-    if "gas" not in tx:
-        raise Exception("tx sin gas")
-
-    if int(tx["gas"]) > MAX_GAS:
-        raise Exception("gas excedido")
-
-    if "value" in tx:
-        if int(tx["value"]) > Web3.to_wei(MAX_VALUE_ETH, "ether"):
-            raise Exception("valor excedido")
+def sign_tx(tx):
+    return call_signer({"cmd": "sign", "tx": tx})
 
 # =========================
-# SIGN
+# LOGICA TAPIZ
 # =========================
 
-def firmar_tx(tx):
-
-    global last_signature_time
-
-    now = time.time()
-    if now - last_signature_time < RATE_LIMIT_SECONDS:
-        raise Exception("rate limit")
-
-    validar_tx(tx)
-
-    signed = account.sign_transaction(tx)
-    last_signature_time = now
-
-    return signed.rawTransaction.hex()
+def generar_estado():
+    t = int(time.time())
+    i = t % 3
+    j = (i + 1) % 3
+    intensidad = (i - j) * 10
+    return i, j, intensidad
 
 # =========================
-# SERVER
+# LOOP
 # =========================
 
-def start_server():
+def loop():
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((HOST, PORT))
-    server.listen()
-
-    print(f"[Signer] activo {HOST}:{PORT}")
+    from_addr = get_address()
+    print("Signer address:", from_addr)
 
     while True:
 
-        conn, _ = server.accept()
-
         try:
-            data = conn.recv(8192).decode()
+            nonce = get_nonce()
 
-            if not data:
-                conn.close()
-                continue
+            i, j, intensidad = generar_estado()
 
-            req = json.loads(data)
+            # tx1
+            tx1 = contract.functions.escribirRelacion(
+                i, j, int(intensidad)
+            ).build_transaction({
+                "from": from_addr,
+                "nonce": nonce,
+                "gas": 200000,
+                "gasPrice": w3.to_wei("10", "gwei"),
+                "chainId": 1
+            })
 
-            cmd = req.get("cmd")
+            raw1 = sign_tx(tx1)
+            hash1 = w3.eth.send_raw_transaction(bytes.fromhex(raw1[2:]))
+            print("tx1:", hash1.hex())
 
-            if cmd == "get_address":
-                response = get_address()
+            # tx2
+            tx2 = contract.functions.registrarEstado(
+                f"{i}->{j}", int(intensidad)
+            ).build_transaction({
+                "from": from_addr,
+                "nonce": nonce + 1,
+                "gas": 200000,
+                "gasPrice": w3.to_wei("10", "gwei"),
+                "chainId": 1
+            })
 
-            elif cmd == "get_nonce":
-                response = get_nonce()
-
-            elif cmd == "sign":
-                tx = req.get("tx")
-                response = firmar_tx(tx)
-
-            else:
-                response = "ERROR: cmd desconocido"
-
-            conn.send(str(response).encode())
+            raw2 = sign_tx(tx2)
+            hash2 = w3.eth.send_raw_transaction(bytes.fromhex(raw2[2:]))
+            print("tx2:", hash2.hex())
 
         except Exception as e:
-            conn.send(f"ERROR: {str(e)}".encode())
+            print("ERROR:", e)
 
-        finally:
-            conn.close()
+        time.sleep(10)
 
 if __name__ == "__main__":
-    start_server()
+    loop()
