@@ -1,0 +1,53 @@
+def escribir_blockchain(contract, account, w3, i, j, valor, intensidad):
+
+    nonce = w3.eth.get_transaction_count(account.address)
+
+    tx = contract.functions.escribirRelacion(i,j,valor).build_transaction({
+        'from': account.address,
+        'nonce': nonce,
+        'gas': 200000,
+        'gasPrice': w3.to_wei('10','gwei')
+    })
+
+    signed = account.sign_transaction(tx)
+    w3.eth.send_raw_transaction(signed.rawTransaction)
+
+    tx2 = contract.functions.registrarEstado(
+        f"{i}->{j}", int(intensidad)
+    ).build_transaction({
+        'from': account.address,
+        'nonce': nonce+1,
+        'gas': 200000,
+        'gasPrice': w3.to_wei('10','gwei')
+    })
+
+    signed2 = account.sign_transaction(tx2)
+    w3.eth.send_raw_transaction(signed2.rawTransaction)
+
+def ciclo(robot):
+
+    while True:
+
+        precios = robot.get_precios()  # API real
+
+        T = construir_T(precios)
+
+        lambdas, psi = eigen_engine(T)
+
+        señal, intensidad = decidir(lambdas, psi, robot.estado)
+
+        ejecutar_trading(señal)
+
+        if debe_escribir(intensidad, robot.estado):
+            escribir_blockchain(
+                robot.contract,
+                robot.account,
+                robot.w3,
+                0,1,
+                int(intensidad),
+                intensidad
+            )
+
+            robot.estado["ultima_escritura"] = time.time()
+
+        time.sleep(5)
