@@ -1,0 +1,27 @@
+def ciclo(robot):
+
+    while True:
+
+        precios = robot.get_precios()  # API real
+
+        T = construir_T(precios)
+
+        lambdas, psi = eigen_engine(T)
+
+        señal, intensidad = decidir(lambdas, psi, robot.estado)
+
+        ejecutar_trading(señal)
+
+        if debe_escribir(intensidad, robot.estado):
+            escribir_blockchain(
+                robot.contract,
+                robot.account,
+                robot.w3,
+                0,1,
+                int(intensidad),
+                intensidad
+            )
+
+            robot.estado["ultima_escritura"] = time.time()
+
+        time.sleep(5)
