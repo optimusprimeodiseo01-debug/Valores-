@@ -74,52 +74,51 @@ def generar_estado():
 # LOOP
 # =========================
 
+from tx_queue import TxQueue
+
+queue = TxQueue()
+
 def loop():
 
     from_addr = get_address()
-    print("Signer address:", from_addr)
+    print("Signer:", from_addr)
 
     while True:
 
         try:
-            nonce = get_nonce()
-
             i, j, intensidad = generar_estado()
 
-            # tx1
-            tx1 = contract.functions.escribirRelacion(
-                i, j, int(intensidad)
-            ).build_transaction({
-                "from": from_addr,
-                "nonce": nonce,
-                "gas": 200000,
-                "gasPrice": w3.to_wei("10", "gwei"),
-                "chainId": 1
-            })
+            # builder tx1
+            def tx1_builder(addr, nonce):
+                return contract.functions.escribirRelacion(
+                    i, j, int(intensidad)
+                ).build_transaction({
+                    "from": addr,
+                    "nonce": nonce,
+                    "gas": 200000,
+                    "gasPrice": w3.to_wei("10", "gwei"),
+                    "chainId": 1
+                })
 
-            raw1 = sign_tx(tx1)
-            hash1 = w3.eth.send_raw_transaction(bytes.fromhex(raw1[2:]))
-            print("tx1:", hash1.hex())
+            # builder tx2
+            def tx2_builder(addr, nonce):
+                return contract.functions.registrarEstado(
+                    f"{i}->{j}", int(intensidad)
+                ).build_transaction({
+                    "from": addr,
+                    "nonce": nonce,
+                    "gas": 200000,
+                    "gasPrice": w3.to_wei("10", "gwei"),
+                    "chainId": 1
+                })
 
-            # tx2
-            tx2 = contract.functions.registrarEstado(
-                f"{i}->{j}", int(intensidad)
-            ).build_transaction({
-                "from": from_addr,
-                "nonce": nonce + 1,
-                "gas": 200000,
-                "gasPrice": w3.to_wei("10", "gwei"),
-                "chainId": 1
-            })
+            queue.add(tx1_builder)
+            queue.add(tx2_builder)
 
-            raw2 = sign_tx(tx2)
-            hash2 = w3.eth.send_raw_transaction(bytes.fromhex(raw2[2:]))
-            print("tx2:", hash2.hex())
+            queue.process()
+            queue.check_pending()
 
         except Exception as e:
-            print("ERROR:", e)
+            print("ERROR LOOP:", e)
 
-        time.sleep(10)
-
-if __name__ == "__main__":
-    loop()
+        time.sleep(5)
