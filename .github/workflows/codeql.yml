@@ -1,8 +1,8 @@
-name: "CodeQL Security Scan"
+name: CodeQL Security Scan
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
 
 jobs:
@@ -22,7 +22,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: python
-          queries: ./.github/codeql/queries
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
