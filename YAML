@@ -12,9 +12,7 @@ jobs:
 
     permissions:
       contents: read
-      actions: read
       security-events: write
-      packages: read
 
     strategy:
       fail-fast: false
@@ -26,8 +24,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # -------------------------
+      # PYTHON SETUP
+      # -------------------------
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install Python deps
+        if: matrix.language == 'python'
+        run: |
+          pip install web3
+
+      # -------------------------
+      # NODE / HARDHAT SETUP
+      # -------------------------
+      - name: Setup Node
+        if: matrix.language == 'javascript-typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node deps
+        if: matrix.language == 'javascript-typescript'
+        run: npm ci
+
+      - name: Compile contracts
+        if: matrix.language == 'javascript-typescript'
+        run: npx hardhat compile
+
+      # -------------------------
+      # CODEQL
+      # -------------------------
       - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          queries: security-and-quality
 
       - uses: github/codeql-action/analyze@v4
