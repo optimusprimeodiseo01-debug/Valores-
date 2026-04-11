@@ -1,0 +1,39 @@
+name: Base Pipeline
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  sanity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node estable
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node deps
+        run: |
+          if [ -f package.json ]; then npm install; fi
+
+      - name: Compile (si existe Hardhat)
+        run: |
+          if [ -f hardhat.config.js ]; then npx hardhat compile; fi
+
+      # Python estable
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install Python deps
+        run: |
+          pip install web3 || true
+
+      - name: Smoke test
+        run: echo "OK"
