@@ -5,11 +5,14 @@ on:
     branches: ["main"]
   pull_request:
 
+permissions:
+  security-events: write
+  contents: read
+
 jobs:
   analyze:
-    name: Analyze (Python)
+    name: Analyze
     runs-on: ubuntu-latest
-
     permissions:
       security-events: write
       contents: read
@@ -17,14 +20,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
-        with:
-          languages: python
-
+      
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
-
+      
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
