@@ -1,0 +1,81 @@
+name: CodeQL & Security Tapiz
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  codeql-analysis:
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      # NODE
+      - name: Setup Node
+        if: matrix.language == 'javascript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node deps
+        if: matrix.language == 'javascript'
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Compile contracts
+        if: matrix.language == 'javascript'
+        run: npx hardhat compile
+
+      # PYTHON
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        if: matrix.language == 'python'
+        run: pip install web3
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+
+  slither-analysis:
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Slither
+        id: slither
+        uses: crytic/slither-action@v0.4.0
+        continue-on-error: true
+        with:
+          sarif: results.sarif
+          node-version: 20
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
