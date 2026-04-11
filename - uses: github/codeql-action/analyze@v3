@@ -1,28 +1,70 @@
-name: CodeQL
+name: CodeQL Advanced Tapiz
 
 on:
   push:
     branches: [ main ]
+  pull_request:
 
 jobs:
   analyze:
+    name: Analyze (JS + Python)
     runs-on: ubuntu-latest
 
     permissions:
       security-events: write
       contents: read
 
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # -------------------------
+      # ENTORNO NODE (HARDHAT)
+      # -------------------------
+      - name: Setup Node
+        if: matrix.language == 'javascript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node deps
+        if: matrix.language == 'javascript'
+        run: npm ci
+
+      - name: Compile contracts
+        if: matrix.language == 'javascript'
+        run: npx hardhat compile
+
+      # -------------------------
+      # ENTORNO PYTHON (RUNNER)
+      # -------------------------
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install Python deps
+        if: matrix.language == 'python'
+        run: |
+          pip install --upgrade pip
+          pip install web3
+
+      # -------------------------
+      # CODEQL INIT
+      # -------------------------
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: python
+          languages: ${{ matrix.language }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
+      # -------------------------
+      # ANALYSIS
+      # -------------------------
       - name: Analyze
         uses: github/codeql-action/analyze@v3
