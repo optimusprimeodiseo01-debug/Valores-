@@ -1,4 +1,4 @@
-name: CodeQL Advanced Tapiz
+name: CodeQL Tapiz (Passive Connector)
 
 on:
   push:
@@ -24,30 +24,40 @@ jobs:
         uses: actions/checkout@v4
 
       # -------------------------
-      # ENTORNO NODE (HARDHAT)
+      # INIT CODEQL (PRIMERO)
+      # -------------------------
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      # -------------------------
+      # JAVASCRIPT (HARDHAT)
       # -------------------------
       - name: Setup Node
         if: matrix.language == 'javascript'
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install Node deps
         if: matrix.language == 'javascript'
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Compile contracts
+      - name: Compile contracts (deterministic)
         if: matrix.language == 'javascript'
         run: npx hardhat compile
 
       # -------------------------
-      # ENTORNO PYTHON (RUNNER)
+      # PYTHON (RUNNER / CONNECTOR)
       # -------------------------
       - name: Setup Python
         if: matrix.language == 'python'
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
+          cache: 'pip'
 
       - name: Install Python deps
         if: matrix.language == 'python'
@@ -56,12 +66,10 @@ jobs:
           pip install web3
 
       # -------------------------
-      # CODEQL INIT
+      # BUILD (SIN LOGICA EXTRA)
       # -------------------------
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
 
       # -------------------------
       # ANALYSIS
