@@ -5,18 +5,22 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  security-events: write
+  contents: read
+
 jobs:
+
+  # -------------------------
+  # CODEQL (UNIFICADO)
+  # -------------------------
   codeql-analysis:
     runs-on: ubuntu-latest
-
-    permissions:
-      security-events: write
-      contents: read
 
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript', 'python' ]
+        language: [javascript, python]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +31,7 @@ jobs:
           languages: ${{ matrix.language }}
           queries: security-and-quality
 
-      # NODE
+      # NODE SETUP
       - name: Setup Node
         if: matrix.language == 'javascript'
         uses: actions/setup-node@v4
@@ -41,9 +45,10 @@ jobs:
 
       - name: Compile contracts
         if: matrix.language == 'javascript'
-        run: npx hardhat compile
+        run: |
+          if [ -f hardhat.config.js ]; then npx hardhat compile; fi
 
-      # PYTHON
+      # PYTHON SETUP
       - name: Setup Python
         if: matrix.language == 'python'
         uses: actions/setup-python@v5
@@ -52,28 +57,36 @@ jobs:
 
       - name: Install Python deps
         if: matrix.language == 'python'
-        run: pip install web3
+        run: |
+          python -m pip install --upgrade pip
+          pip install web3
 
-      - name: Analyze
+      # ANALYSIS
+      - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
+  # -------------------------
+  # SLITHER (EVM SECURITY)
+  # -------------------------
   slither-analysis:
     runs-on: ubuntu-latest
-
-    permissions:
-      security-events: write
-      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Slither
-        id: slither
-        uses: crytic/slither-action@v0.4.0
-        continue-on-error: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          sarif: results.sarif
-          node-version: 20
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: |
+          pip install slither-analyzer
+
+      - name: Run Slither
+        continue-on-error: true
+        run: |
+          slither . --sarif results.sarif || true
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
