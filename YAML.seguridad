@@ -11,9 +11,6 @@ permissions:
 
 jobs:
 
-  # -------------------------
-  # CODEQL (UNIFICADO)
-  # -------------------------
   codeql-analysis:
     runs-on: ubuntu-latest
 
@@ -31,14 +28,14 @@ jobs:
           languages: ${{ matrix.language }}
           queries: security-and-quality
 
-      # NODE SETUP
+      # NODE
       - name: Setup Node
         if: matrix.language == 'javascript'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Node deps
+      - name: Install Node dependencies
         if: matrix.language == 'javascript'
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
@@ -48,26 +45,22 @@ jobs:
         run: |
           if [ -f hardhat.config.js ]; then npx hardhat compile; fi
 
-      # PYTHON SETUP
+      # PYTHON
       - name: Setup Python
         if: matrix.language == 'python'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Python deps
+      - name: Install Python dependencies
         if: matrix.language == 'python'
         run: |
           python -m pip install --upgrade pip
           pip install web3
 
-      # ANALYSIS
-      - name: Perform CodeQL Analysis
+      - name: Run CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-  # -------------------------
-  # SLITHER (EVM SECURITY)
-  # -------------------------
   slither-analysis:
     runs-on: ubuntu-latest
 
@@ -80,8 +73,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Slither
-        run: |
-          pip install slither-analyzer
+        run: pip install slither-analyzer
 
       - name: Run Slither
         continue-on-error: true
